@@ -14681,6 +14681,30 @@ You probably don't want to link to this crate directly; instead check out the
      "Macro for opaque Debug trait implementation.")
     (license (list license:asl2.0 license:expat))))
 
+(define-public rust-opener-0.4
+  (package
+    (name "rust-opener")
+    (version "0.4.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (crate-uri "opener" version))
+       (file-name
+        (string-append name "-" version ".tar.gz"))
+       (sha256
+        (base32
+         "1bpknqvhqkalhmq8n2m97apc0r3y194ppybl1qxay34xr83p848k"))))
+    (build-system cargo-build-system)
+    (arguments
+     `(#:cargo-inputs (("rust-winapi" ,rust-winapi-0.3))))
+    (home-page
+     "https://github.com/Seeker14491/opener")
+    (synopsis
+     "Open a file or link using the system default program.")
+    (description
+     "Open a file or link using the system default program.")
+    (license (list license:expat license:asl2.0))))
+
 (define-public rust-openssl-0.10
   (package
     (name "rust-openssl")
