@@ -1,0 +1,14 @@
+Parse argv properly when the programs are wrapped by Guix.
+========================================================================
+diff --git a/pwnlib/commandline/common.py b/pwnlib/commandline/common.py
+index 75edfdcb..5249b6e6 100644
+--- a/pwnlib/commandline/common.py
++++ b/pwnlib/commandline/common.py
+@@ -28,5 +28,7 @@ parser_commands = parser.add_subparsers(dest='command')
+ def main(file=sys.argv[0]):
+     import pwnlib.commandline.main
+     name = os.path.splitext(os.path.basename(file))[0]
++    if name.startswith('.') and name.endswith('-real'):
++        name = name[1:-5]
+     sys.argv.insert(1, name)
+     pwnlib.commandline.main.main()

@@ -1431,6 +1431,7 @@ dist_patch_DATA =						\
   %D%/packages/patches/python-packaging-test-arch.patch		\
   %D%/packages/patches/python2-parameterized-docstring-test.patch	\
   %D%/packages/patches/python-paste-remove-timing-test.patch	\
+  %D%/packages/patches/python-pwntools-guix-wrappers.patch	\
   %D%/packages/patches/python-pycrypto-CVE-2013-7459.patch	\
   %D%/packages/patches/python-pycrypto-time-clock.patch		\
   %D%/packages/patches/python2-pygobject-2-gi-info-type-error-domain.patch \
