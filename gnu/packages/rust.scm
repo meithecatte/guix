@@ -613,7 +613,8 @@ jemalloc = \"" jemalloc "/lib/libjemalloc_pic.a" "\"
                      (lambda (file) (delete-manifest-file out file))
                      '("install.log"
                        "manifest-rust-docs"
-                       "manifest-rust-std-x86_64-unknown-linux-gnu"
+                       ,(string-append "manifest-rust-std-"
+                          (nix-system->gnu-triplet-for-rust))
                        "manifest-rustc"))
                    (for-each
                      (lambda (file) (delete-manifest-file cargo-out file))
