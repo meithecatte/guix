@@ -109,7 +109,9 @@ as \"x86_64-linux\"."
     (arguments
      `(#:configure-flags '("-DCMAKE_SKIP_BUILD_RPATH=FALSE"
                            "-DCMAKE_BUILD_WITH_INSTALL_RPATH=FALSE"
-                           "-DBUILD_SHARED_LIBS:BOOL=TRUE"
+                           ;"-DBUILD_SHARED_LIBS:BOOL=TRUE"
+                           "-DLLVM_BUILD_LLVM_DYLIB=ON"
+                           "-DLLVM_LINK_LLVM_DYLIB=ON"
                            "-DLLVM_ENABLE_FFI:BOOL=TRUE"
                            "-DLLVM_REQUIRES_RTTI=1" ; For some third-party utilities
                            "-DLLVM_INSTALL_UTILS=ON") ; Needed for rustc.
@@ -237,6 +239,8 @@ given PATCHES.  When TOOLS-EXTRA is given, it must point to the
     (arguments
      `(#:configure-flags
        (list "-DCLANG_INCLUDE_TESTS=True"
+             "-DLLVM_LINK_LLVM_DYLIB=ON"
+             "-DCLANG_LINK_CLANG_DYLIB=ON"
 
              ;; Find libgcc_s, crtbegin.o, and crtend.o.
              (string-append "-DGCC_INSTALL_PREFIX="
