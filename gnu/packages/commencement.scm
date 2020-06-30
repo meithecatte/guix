@@ -407,6 +407,7 @@ $MES -e '(mescc)' module/mescc.scm -- \"$@\"
                        (string-append
                         mes "/share/mes/module"
                         ":" dir "/nyacc-0.99.0/module"))
+               (setenv "V" "1")
                (invoke "gash" "configure.sh"
                        (string-append "--prefix=" out)
                        (string-append "--host=i686-linux-gnu")))))
@@ -416,11 +417,6 @@ $MES -e '(mescc)' module/mescc.scm -- \"$@\"
          (delete 'check)
          (replace 'install
            (lambda _
-             (substitute* "install.sh"  ; show some progress
-               ((" -xf") " -xvf")
-               (("^( *)((cp|mkdir|tar) [^']*[^\\])\n" all space cmd)
-                (string-append space "echo '" cmd "'\n"
-                               space cmd "\n")))
              (invoke "sh" "install.sh")
              ;; Keep ASCII output, for friendlier comparison and bisection
              (let* ((out (assoc-ref %outputs "out"))
