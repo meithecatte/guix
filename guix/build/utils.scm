@@ -6,6 +6,7 @@
 ;;; Copyright © 2018 Arun Isaac <arunisaac@systemreboot.net>
 ;;; Copyright © 2018, 2019 Ricardo Wurmus <rekado@elephly.net>
 ;;; Copyright © 2020 Efraim Flashner <efraim@flashner.co.il>
+;;; Copyright © 2020 Jakub Kądziołka <kuba@kadziolka.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -747,29 +748,42 @@ PROC's result is returned."
       (lambda (key . args)
         (false-if-exception (delete-file template))))))
 
-(define (substitute file pattern+procs)
+(define* (substitute file pattern+procs #:key (require-matches? #t))
   "PATTERN+PROCS is a list of regexp/two-argument-procedure pairs.  For each
 line of FILE, and for each PATTERN that it matches, call the corresponding
 PROC as (PROC LINE MATCHES); PROC must return the line that will be written as
 a substitution of the original line.  Be careful about using '$' to match the
-end of a line; by itself it won't match the terminating newline of a line."
-  (let ((rx+proc  (map (match-lambda
-                        (((? regexp? pattern) . proc)
-                         (cons pattern proc))
-                        ((pattern . proc)
-                         (cons (make-regexp pattern regexp/extended)
-                               proc)))
-                       pattern+procs)))
+end of a line; by itself it won't match the terminating newline of a line.
+
+By default, SUBSTITUTE will raise a &message condition if one of the patterns
+fails to match. If a lack of matches is acceptable, pass #:require-matches? #f
+to disable this check."
+  (let ((rx+proc (map (match-lambda
+                       (((? regexp? pattern) . proc)
+                        (cons* #f "<unknown>" pattern proc))
+                       ((pattern . proc)
+                        (cons* #f pattern (make-regexp pattern regexp/extended)
+                              proc)))
+                      pattern+procs)))
     (with-atomic-file-replacement file
       (lambda (in out)
         (let loop ((line (read-line in 'concat)))
           (if (eof-object? line)
-              #t
+              (when require-matches?
+                (for-each
+                  (match-lambda
+                    ((#f pat . _)
+                     (raise (condition
+                             (&message
+                              (message (format #f "substitute: ~a: pattern failed to match: ~a" file pat))))))
+                    ((#t . _) #t))
+                  rx+proc))
               (let ((line (fold (lambda (r+p line)
                                   (match r+p
-                                    ((regexp . proc)
+                                    ((_ _ regexp . proc)
                                      (match (list-matches regexp line)
                                        ((and m+ (_ _ ...))
+                                        (set-car! r+p #t)
                                         (proc line m+))
                                        (_ line)))))
                                 line
@@ -814,9 +828,17 @@ match substring.
 Alternatively, FILE may be a list of file names, in which case they are
 all subject to the substitutions.
 
+By default, SUBSTITUTE* will raise a &message condition if one of the patterns
+fails to match on one of the files. If a lack of matches is acceptable,
+add #:require-matches? #f after FILE to disable this check.
+
 Be careful about using '$' to match the end of a line; by itself it won't
 match the terminating newline of a line."
     ((substitute* file ((regexp match-var ...) body ...) ...)
+     (substitute* file #:require-matches? #t
+                  ((regexp match-var ...) body ...) ...))
+    ((substitute* file #:require-matches? require-matches?
+                  ((regexp match-var ...) body ...) ...)
      (let ()
        (define (substitute-one-file file-name)
          (substitute
@@ -840,7 +862,8 @@ match the terminating newline of a line."
                                       (begin body ...)
                                       (substring l o (match:start m))
                                       r))))))))
-                ...)))
+                ...)
+          #:require-matches? require-matches?))
 
        (match file
          ((files (... ...))
