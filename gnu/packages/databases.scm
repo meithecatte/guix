@@ -938,7 +938,7 @@ as a drop-in replacement of MySQL.")
 (define-public mariadb-connector-c
   (package
     (name "mariadb-connector-c")
-    (version "3.1.8")
+    (version "3.1.9")
     (source (origin
               (method url-fetch)
               (uri (string-append
@@ -947,7 +947,7 @@ as a drop-in replacement of MySQL.")
                     version "-src.tar.gz"))
               (sha256
                (base32
-                "0yrzhsxmjiwkhchagx8dymzhvxl3k5h40wn9wpicqjvgjb9k8523"))))
+                "1izjzf7yzjqzlk8dkp327fa9lawsv2hnnlnr7g5lshyx5azrk38h"))))
     (inputs
      `(("openssl" ,openssl)))
     (build-system cmake-build-system)
@@ -1481,15 +1481,14 @@ extremely small.")
 (define-public perl-dbix-class
   (package
     (name "perl-dbix-class")
-    (version "0.082841")
+    (version "0.082842")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "mirror://cpan/authors/id/R/RI/RIBASUSHI/"
                            "DBIx-Class-" version ".tar.gz"))
        (sha256
-        (base32
-         "1gf3hgv8f9rnr8bl4ljgsqk4aliphmvljhsk4282kvdc4mcgh1fp"))))
+        (base32 "1rh7idjjbibc1zmiaaarask434lh0lx7f2xyfwmy37k9fa0xcpmh"))))
     (build-system perl-build-system)
     (native-inputs
      `(("perl-dbd-sqlite" ,perl-dbd-sqlite)
@@ -1517,7 +1516,7 @@ extremely small.")
        ("perl-path-class" ,perl-path-class)
        ("perl-scalar-list-utils" ,perl-scalar-list-utils)
        ("perl-scope-guard" ,perl-scope-guard)
-       ("perl-sql-abstract" ,perl-sql-abstract)
+       ("perl-sql-abstract-classic" ,perl-sql-abstract-classic)
        ("perl-sub-name" ,perl-sub-name)
        ("perl-text-balanced" ,perl-text-balanced)
        ("perl-try-tiny" ,perl-try-tiny)))
@@ -1780,6 +1779,42 @@ been modified to make the SQL easier to generate from Perl data structures.
 The underlying idea is for this module to do what you mean, based on the data
 structures you provide it, so that you don't have to modify your code every
 time your data changes.")
+    (license license:perl-license)))
+
+(define-public perl-sql-abstract-classic
+  (package
+    (name "perl-sql-abstract-classic")
+    (version "1.91")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append "mirror://cpan/authors/id/R/RI/RIBASUSHI/"
+                           "SQL-Abstract-Classic-" version ".tar.gz"))
+       (sha256
+        (base32 "0a7g13hs3kdxrjn43sfli09mgsi9d6w0dfw6hlk268av17yisgaf"))))
+    (build-system perl-build-system)
+    (native-inputs
+     `(("perl-test-deep" ,perl-test-deep)
+       ("perl-test-exception" ,perl-test-exception)
+       ("perl-test-warn" ,perl-test-warn)))
+    (propagated-inputs
+     `(("perl-mro-compat" ,perl-mro-compat)
+       ("perl-sql-abstract" ,perl-sql-abstract)))
+    (home-page "https://metacpan.org/release/SQL-Abstract-Classic")
+    (synopsis "Generate SQL from Perl data structures")
+    (description
+     "This module is nearly identical to @code{SQL::Abstract} 1.81, and exists
+to preserve the ability of users to opt into the new way of doing things in
+later versions according to their own schedules.
+
+It is an abstract SQL generation module based on the concepts used by
+@code{DBIx::Abstract}, with several important differences, especially when it
+comes to @code{WHERE} clauses.  These concepts were modified to make the SQL
+easier to generate from Perl data structures.
+
+The underlying idea is for this module to do what you mean, based on the data
+structures you provide it.  You shouldn't have to modify your code every time
+your data changes, as this module figures it out.")
     (license license:perl-license)))
 
 (define-public perl-sql-splitstatement

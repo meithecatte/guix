@@ -1012,14 +1012,14 @@ dynamic and extensible using the Lua programming language.")
 (define-public menumaker
   (package
     (name "menumaker")
-    (version "0.99.11")
+    (version "0.99.12")
     (source
      (origin
        (method url-fetch)
        (uri (string-append "mirror://sourceforge/menumaker/"
                            "menumaker-" version ".tar.gz"))
        (sha256
-        (base32 "0dprndnhwm7b803zkp4pisiq06ic9iv8vr42in5is47jmvdim0wx"))))
+        (base32 "034v5204bsgkzzk6zfa5ia63q95gln47f7hwf96yvad5hrhmd8z3"))))
     (build-system gnu-build-system)
     (inputs
      `(("python" ,python)))
@@ -1671,6 +1671,7 @@ productive, customizable lisp based systems.")
          (uri (git-reference
                (url "https://github.com/stumpwm/stumpwm-contrib.git")
                (commit commit)))
+         (file-name (git-file-name name version))
          (sha256
           (base32 "0giac390bq95ag41xkxqp8jjrhfx1wpgglz7jg5rkm0wjhcwmyml"))))
       (build-system asdf-build-system/sbcl)

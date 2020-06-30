@@ -36,7 +36,7 @@
 ;;; Copyright © 2018 Madalin Ionel-Patrascu <madalinionel.patrascu@mdc-berlin.de>
 ;;; Copyright © 2018 Benjamin Slade <slade@jnanam.net>
 ;;; Copyright © 2018 Alex Vong <alexvong1995@gmail.com>
-;;; Copyright © 2019 Pierre Neidhardt <mail@ambrevar.xyz>
+;;; Copyright © 2019, 2020 Pierre Neidhardt <mail@ambrevar.xyz>
 ;;; Copyright © 2019, 2020 Oleg Pykhalov <go.wigust@gmail.com>
 ;;; Copyright © 2019 Pierre Langlois <pierre.langlois@gmx.com>
 ;;; Copyright © 2019 Julien Lepiller <julien@lepiller.eu>
@@ -153,6 +153,7 @@
   #:use-module (gnu packages python-xyz)
   #:use-module (gnu packages qt)
   #:use-module (gnu packages readline)
+  #:use-module (gnu packages ruby)
   #:use-module (gnu packages shells)
   #:use-module (gnu packages sdl)
   #:use-module (gnu packages serialization)
@@ -189,6 +190,75 @@
   #:use-module (guix build-system trivial)
   #:use-module ((srfi srfi-1) #:hide (zip))
   #:use-module (srfi srfi-26))
+
+(define-public abe
+  (package
+    (name "abe")
+    (version "1.1")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append "mirror://sourceforge/abe/abe/abe-" version
+                           "/abe-" version ".tar.gz"))
+       (sha256
+        (base32 "1xvpnq1y6y48fn3pvn2lk0h1ilmalv7nb7awpid1g4jcq1sfmi6z"))))
+    (build-system gnu-build-system)
+    (arguments
+     `(#:configure-flags
+       (list (string-append "--with-data-dir="
+                            (assoc-ref %outputs "out")
+                            "/share/abe"))
+       #:phases
+       (modify-phases %standard-phases
+         (replace 'bootstrap
+           (lambda _ (invoke "sh" "autogen.sh")))
+         (add-before 'build 'set-SDL
+           ;; Set correct environment for SDL.
+           (lambda* (#:key inputs #:allow-other-keys)
+             (setenv "CPATH"
+                     (string-append
+                      (assoc-ref inputs "sdl") "/include/SDL:"
+                      (or (getenv "CPATH") "")))
+             #t))
+         (add-after 'install 'finalize-install
+           (lambda* (#:key outputs #:allow-other-keys)
+             (let ((share (string-append (assoc-ref outputs "out") "/share")))
+               ;; Installation script does not copy game data files.
+               (let ((data (string-append share "/abe")))
+                 (for-each (lambda (dir)
+                             (let ((target (string-append data "/" dir)))
+                               (mkdir-p target)
+                               (copy-recursively dir target)))
+                           '("images" "maps" "sounds")))
+               ;; Create desktop file.
+               (let ((apps (string-append share "/applications")))
+                 (mkdir-p apps)
+                 (make-desktop-entry-file
+                  (string-append apps "/abe.desktop")
+                  #:name "Abe's Amazing Adventure"
+                  #:exec ,name
+                  #:categories '("AdventureGame" "Game")
+                  #:keywords
+                  '("side-scrolling" "adventure" "pyramid" "singleplayer")
+                  #:comment
+                  '(("de" "Ein sich seitwärts bewegendes Abenteuerspiel")
+                    (#f "Side-scrolling game")))))
+             #t)))))
+    (native-inputs
+     `(("autoconf" ,autoconf)
+       ("automake" ,automake)))
+    (inputs
+     `(("libxi" ,libxi)
+       ("libxmu" ,libxmu)
+       ("libxt" ,libxt)
+       ("sdl" ,(sdl-union (list sdl sdl-mixer)))))
+    (home-page "http://abe.sourceforge.net")
+    (synopsis "Scrolling, platform-jumping, ancient pyramid exploring game")
+    (description
+     "Abe's Amazing Adventure is a scrolling,
+platform-jumping, key-collecting, ancient pyramid exploring game, vaguely in
+the style of similar games for the Commodore+4.")
+    (license license:gpl2+)))
 
 ;; Data package for adanaxisgpl.
 (define adanaxis-mush
@@ -4069,24 +4139,40 @@ in-window at 640x480 resolution or fullscreen.")
 (define-public warzone2100
   (package
     (name "warzone2100")
-    (version "3.2.3")
+    (version "3.4.0")
     (source
      (origin
        (method url-fetch)
-       (uri (string-append "mirror://sourceforge/warzone2100/archives/"
-                           "unsupported/Warzone2100-"
-                           (version-major+minor version) "/" version
-                           "/warzone2100-" version ".tar.xz"))
+       (uri (string-append "mirror://sourceforge/warzone2100/releases/"
+                           version
+                           "/warzone2100_src.tar.xz"))
        (sha256
-        (base32 "10kmpr4cby95zwqsl1zwx95d9achli6khq7flv6xmrq30a39xazw"))))
-    (build-system gnu-build-system)
+        (base32 "0g4qwi9zw0s4pfgrz3fxhargsj3405rbrh9zy3b2j3arzss2h0gy"))
+       (modules '((guix build utils)))
+       (snippet
+        '(begin
+           (with-directory-excursion "3rdparty"
+             (for-each
+              delete-file-recursively
+              '("discord-rpc"
+                "miniupnp"
+                "utfcpp")))
+             #t))))
+    (build-system cmake-build-system)
     (arguments
-     `(#:configure-flags '("--with-distributor=Guix")
+     `(#:configure-flags '("-DWZ_DISTRIBUTOR=Guix"
+                           "-DENABLE_DISCORD=off")
+       #:tests? #f ; TODO: Tests seem to be broken, configure.ac is missing.
        #:phases
        (modify-phases %standard-phases
+         (add-after 'unpack 'fix-utfcpp-include
+           (lambda _
+             (substitute* "lib/framework/wzstring.cpp"
+               (("<utfcpp/source/utf8.h>") "<utf8.h>"))
+             #t))
          (add-after 'unpack 'link-tests-with-qt
            (lambda _
-             (substitute* "tests/Makefile.in"
+             (substitute* "tests/Makefile.am"
                (("(framework_linktest_LDADD|maptest_LDADD) = " prefix)
                 (string-append prefix "$(QT5_LIBS) ")))
              #t))
@@ -4097,32 +4183,38 @@ in-window at 640x480 resolution or fullscreen.")
                 (string-append "iV_DrawTextRotated(\"Press ESC to exit.\", "
                                "100, 100, 0.0f, font_regular);")))
              #t)))))
-    (native-inputs `(("gettext" ,gettext-minimal)
+    (native-inputs `(("asciidoc" ,asciidoc)
+                     ("asciidoctor" ,ruby-asciidoctor)
+                     ("gettext" ,gettext-minimal)
                      ("pkg-config" ,pkg-config)
                      ("unzip" ,unzip)
-                     ("zip" ,zip)))
-    (inputs `(("fontconfig" ,fontconfig)
+                     ;; 7z is used to create .zip archive, not `zip' as in version 3.2.*.
+                     ("p7zip" ,p7zip)))
+    (inputs `(("curl" ,curl)
+              ("fontconfig" ,fontconfig)
               ("freetype" ,freetype)
-              ("fribidi" ,fribidi)
               ("glew" ,glew)
               ("harfbuzz" ,harfbuzz)
               ("libtheora" ,libtheora)
               ("libvorbis" ,libvorbis)
               ("libxrandr" ,libxrandr)
+              ("libsodium" ,libsodium)
+              ("miniupnpc" ,miniupnpc)
               ("openal" ,openal)
               ("physfs" ,physfs)
               ("qtbase" ,qtbase)
               ("qtscript" ,qtscript)
               ("openssl" ,openssl)
-              ("sdl2" ,sdl2)))
+              ("sdl2" ,sdl2)
+              ("utfcpp" ,utfcpp)))
     (home-page "https://wz2100.net")
     (synopsis "3D Real-time strategy and real-time tactics game")
     (description
      "Warzone 2100 offers campaign, multi-player, and single-player skirmish
-modes. An extensive tech tree with over 400 different technologies, combined
+modes.  An extensive tech tree with over 400 different technologies, combined
 with the unit design system, allows for a wide variety of possible units and
 tactics.")
-                                        ; Everything is GPLv2+ unless otherwise specified in COPYING.NONGPL
+    ;; Everything is GPLv2+ unless otherwise specified in COPYING.NONGPL
     (license (list license:bsd-3
                    license:cc0
                    license:cc-by-sa3.0
@@ -4133,16 +4225,16 @@ tactics.")
 (define-public starfighter
   (package
     (name "starfighter")
-    (version "2.2")
+    (version "2.2.1")
     (source (origin
               (method url-fetch)
               (uri (string-append
                     "https://github.com/pr-starfighter/starfighter/releases"
                     "/download/v" version "/starfighter-"
-                    (version-major+minor version) "-src.tar.gz"))
+                    version "-src.tar.gz"))
               (sha256
                (base32
-                "1ldd9cbvl694ps4sapr8213m3zjrci7gii5x3kjjfalkikmndpd2"))))
+                "0bmrid26z7il42lczfs3j3cv671az9fxi2wkf0s22smmzkhcnnrz"))))
     (build-system gnu-build-system)
     (native-inputs
      `(("pkg-config" ,pkg-config)))
@@ -10787,6 +10879,33 @@ range with the objective to hit as many dummy targets as possible within
 3 minutes.  You control a gun that may either fire small or large grenades at
 soldiers, jeeps and tanks.  The gameplay is simple but it is not that easy to
 get high scores.")
+    (license license:gpl2+)))
+
+(define-public burgerspace
+  (package
+    (name "burgerspace")
+    (version "1.9.3")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append "http://perso.b2b2c.ca/~sarrazip/dev/"
+                           "burgerspace-" version ".tar.gz"))
+       (sha256
+        (base32 "1005a04rbn4lzjrpfg0m394k2mfaji63fm2qhdqdsxila8a6kjbv"))))
+    (build-system gnu-build-system)
+    (native-inputs
+     `(("pkg-config" ,pkg-config)))
+    (inputs
+     `(("flatzebra" ,flatzebra)))
+    (home-page "http://perso.b2b2c.ca/~sarrazip/dev/burgerspace.html")
+    (synopsis "Avoid evil foodstuffs and make burgers")
+    (description
+     "This is a clone of the classic game BurgerTime.  In it, you play
+the part of a chef who must create burgers by stepping repeatedly on
+the ingredients until they fall into place.  And to make things more
+complicated, you also must avoid evil animate food items while
+performing this task, with nothing but your trusty pepper shaker to
+protect you.")
     (license license:gpl2+)))
 
 (define-public 7kaa

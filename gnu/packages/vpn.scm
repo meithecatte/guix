@@ -501,7 +501,7 @@ The peer-to-peer VPN implements a Layer 2 (Ethernet) network between the peers
 (define-public wireguard-linux-compat
   (package
     (name "wireguard-linux-compat")
-    (version "1.0.20200520")
+    (version "1.0.20200623")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://git.zx2c4.com/wireguard-linux-compat/"
@@ -509,7 +509,7 @@ The peer-to-peer VPN implements a Layer 2 (Ethernet) network between the peers
                                   ".tar.xz"))
               (sha256
                (base32
-                "1hvpbfpdd3v2k27ypa1y1j422irx7hxpz87f50s28jvkxx5sxrqn"))))
+                "0iclixsqfckaz6kz6a4lhzdary3xhfy1d0pz0pgrwy8m8mr3f28k"))))
     (build-system linux-module-build-system)
     (outputs '("out"
                "kernel-patch"))
@@ -648,10 +648,10 @@ public keys and can roam across IP addresses.")
                   (delete 'configure) ;no configure script
                   (add-before 'build 'setup-environment
                     (lambda* (#:key inputs #:allow-other-keys)
-                      (setenv "CFLAGS"
-                              (string-append "-DPPD=\""
-                                             (assoc-ref inputs "ppp")
-                                             "/sbin/pppd\""))
+                      (substitute* "l2tp.h"
+                        (("/usr/sbin/pppd")
+                         (string-append (assoc-ref inputs "ppp")
+                                        "/sbin/pppd")))
                       (setenv "KERNELSRC"
                               (assoc-ref inputs "linux-libre-headers"))
                       #t)))

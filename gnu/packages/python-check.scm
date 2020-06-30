@@ -183,14 +183,14 @@ of the project to ensure it renders properly.")
 (define-public python-pytest-flake8
   (package
     (name "python-pytest-flake8")
-    (version "1.0.4")
+    (version "1.0.6")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "pytest-flake8" version))
        (sha256
         (base32
-         "1h30gd21fjsafqxwclf25sdh89vrdz7rsh4lzw11aiw7ww9mq8jd"))))
+         "09vhn7r77s1yiqnlwfvh5585f904zpyd6620a90dpccfr1cbp0hv"))))
     (build-system python-build-system)
     (propagated-inputs
      `(("python-flake8" ,python-flake8)))
@@ -358,6 +358,53 @@ framework.")
     (synopsis "Pytest plugin to run pycodestyle")
     (description "This package provides a plugin to run @code{pycodestyle}
 for the @code{pytest} framework.")
+    (license license:expat)))
+
+(define-public python-pytest-benchmark
+  (package
+    (name "python-pytest-benchmark")
+    (version "3.2.3")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "pytest-benchmark" version))
+       (sha256
+        (base32
+         "0a4mpb4j73dsyk47hd1prrjpfk4r458s102cn80rf253jg818hxd"))))
+    (build-system python-build-system)
+    (propagated-inputs
+     `(("python-py-cpuinfo" ,python-py-cpuinfo)))
+    (native-inputs
+     `(("python-pathlib2" ,python-pathlib2)
+       ("python-pytest" ,python-pytest)))
+    (home-page "https://github.com/ionelmc/pytest-benchmark")
+    (synopsis "Pytest fixture for benchmarking code")
+    (description
+     "This package provides a pytest fixture that will group the tests into
+rounds that are calibrated to the chosen timer.")
+    (license license:bsd-2)))
+
+(define-public python-pytest-flask
+  (package
+    (name "python-pytest-flask")
+    (version "1.0.0")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (pypi-uri "pytest-flask" version))
+       (sha256
+        (base32
+         "1hln7mwgdzfi5ma0kqfsi768l7p24jhkw8l0imhifwy08nh7hmjd"))))
+    (build-system python-build-system)
+    (native-inputs
+     `(("python-flask" ,python-flask)
+       ("python-pytest" ,python-pytest)
+       ("python-setuptools-scm" ,python-setuptools-scm)
+       ("python-werkzeug" ,python-werkzeug)))
+    (home-page "https://github.com/pytest-dev/pytest-flask")
+    (synopsis "Pytest fixtures to test Flask applications")
+    (description
+     "This pytest plugin provides fixtures to simplify Flask app testing.")
     (license license:expat)))
 
 (define-public python-codacy-coverage

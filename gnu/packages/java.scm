@@ -54,7 +54,6 @@
   #:use-module (gnu packages fontutils)
   #:use-module (gnu packages gawk)
   #:use-module (gnu packages gettext)
-  #:use-module (gnu packages gcc)
   #:use-module (gnu packages gl)
   #:use-module (gnu packages ghostscript) ;lcms
   #:use-module (gnu packages gnome)
@@ -165,6 +164,64 @@ defined in The Java Language Specification into the bytecoded instruction set
 and binary format defined in The Java Virtual Machine Specification.")
     (license license:ibmpl1.0)))
 
+(define-public drip
+  ;; Last release is from 2014, with a few important commits afterwards.
+  (let ((commit "a4bd00df0199e78243847f06cc04ecaea31f8f08"))
+    (package
+      (name "drip")
+      (version (git-version "0.2.4" "1" commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://github.com/ninjudd/drip")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "0wzmjwfyldr3jn49517xd8yn7dgdk8h88qkga3kjyg1zc375ylg2"))))
+      (build-system gnu-build-system)
+      (native-inputs
+       `(("jdk" ,icedtea "jdk")))
+      (arguments
+       `(#:tests? #f                    ; No tests.
+         #:phases
+         (modify-phases %standard-phases
+           (delete 'configure)
+           (add-before 'install 'fix-wrapper
+             (lambda* (#:key inputs #:allow-other-keys)
+               (let ((jps (string-append (assoc-ref inputs "jdk") "/bin/jps")))
+                 (substitute* "bin/drip"
+                   (("jps") jps)
+                   (("brew update && brew upgrade drip") "guix pull && guix install drip")
+                   ;; No need to make:
+                   (("\\(cd -- \"\\$drip_dir\" && make -s\\) \\|\\| exit 1") "")
+                   ;; No need to include source:
+                   (("\\[\\[ -r \\$drip_dir/src/org/flatland/drip/Main\\.java \\]\\]")
+                    "true"))
+                 #t)))
+           (replace 'install
+             (lambda* (#:key outputs #:allow-other-keys)
+               (let* ((out (assoc-ref outputs "out"))
+                      (bin (string-append out "/bin"))
+                      (share (string-append out "/share/drip")))
+                 (mkdir-p bin)
+                 (for-each
+                  (lambda (file)
+                    (install-file (string-append "bin/" file) bin))
+                  '("drip" "drip_daemon" "drip_proxy"))
+                 (install-file "drip.jar" share)
+                 (substitute* (string-append bin "/drip")
+                   (("drip_dir=\\$bin_dir/..")
+                    (string-append "drip_dir=" share)))
+                 #t))))))
+      (home-page "https://github.com/ninjudd/drip")
+      (synopsis "Faster Java Virtual Machine launching")
+      (description "Drip is a launcher for the Java Virtual Machine that
+provides much faster startup times than the @command{java} command.  The @command{drip}
+script is intended to be a drop-in replacement for the @command{java} command,
+only faster.")
+      (license license:epl1.0))))
+
 ;; This is the last version of GNU Classpath that can be built without ECJ.
 (define classpath-bootstrap
   (package
@@ -254,11 +311,6 @@ language.")
        ("libffi" ,libffi)
        ("zip" ,zip)
        ("zlib" ,zlib)))
-    ;; When built with a recent GCC and glibc the configure step of icedtea-6
-    ;; fails with an invalid instruction error.
-    (native-inputs
-     `(("gcc" ,gcc-5)
-       ("libc" ,glibc-2.28)))
     (home-page "http://jamvm.sourceforge.net/")
     (synopsis "Small Java Virtual Machine")
     (description "JamVM is a Java Virtual Machine conforming to the JVM
@@ -708,6 +760,8 @@ machine.")))
               (sha256
                (base32
                 "1nl0zxz8y5x8gwsrm7n32bry4dx8x70p8z3s9jbdvs8avyb8whkn"))
+              (patches
+               (search-patches "jamvm-2.0.0-disable-branch-patching.patch"))
               (snippet
                '(begin
                   ;; Remove precompiled software.
@@ -7363,8 +7417,7 @@ import org.antlr.grammar.v2.ANTLRTreePrinter;"))
      `(("junit" ,java-junit)))
     (propagated-inputs
      `(("java-stringtemplate" ,java-stringtemplate-3)
-       ("antlr" ,antlr2)
-       ("antlr3" ,antlr3-3.1)))))
+       ("antlr" ,antlr2)))))
 
 (define-public antlr3-3.1
   (package
@@ -9015,23 +9068,30 @@ the dependency is said to be unsatisfied, and the application is broken.")
     (name "java-guice")
     (version "4.1")
     (source (origin
-              (method url-fetch)
-              (uri (string-append "https://github.com/google/guice/archive/"
-                                  version ".tar.gz"))
-              (file-name (string-append name "-" version ".tar.gz"))
+              (method git-fetch)
+              (uri (git-reference
+                     (url "https://github.com/google/guice")
+                     (commit version)))
+              (file-name (git-file-name name version))
               (modules '((guix build utils)))
               (snippet
                `(begin
-                  (for-each delete-file (find-files "." ".*.jar"))))
+                  (for-each delete-file (find-files "." ".*.jar")) #t))
               (sha256
                (base32
-                "0dwmqjzlavb144ywqqglj3h68hqszkff8ai0a42hyb5il0qh4rbp"))))
+                "18im5hdfl4q1b9chww2s1ii60sn3ydyyar32a2sf2p2g8zlbdswq"))))
     (build-system ant-build-system)
     (arguments
      `(#:jar-name "java-guice.jar"
        #:jdk ,icedtea-8
-       #:tests? #f; FIXME: tests are not in a java sub directory
-       #:source-dir "core/src"))
+       #:tests? #f  ; FIXME: tests are not in a java sub directory
+       #:source-dir "core/src"
+       #:phases
+       (modify-phases %standard-phases
+         (add-after 'unpack 'make-files-writable
+           (lambda _
+             (for-each make-file-writable (find-files "."))
+             #t)))))
     (inputs
      `(("guava" ,java-guava)
        ("java-cglib" ,java-cglib)
@@ -9040,7 +9100,7 @@ the dependency is said to be unsatisfied, and the application is broken.")
        ("java-asm" ,java-asm)))
     (home-page "https://github.com/google/guice")
     (synopsis "Lightweight dependency injection framework")
-    (description "Guice is a lightweight dependency injection framework fo
+    (description "Guice is a lightweight dependency injection framework for
 Java 6 and above.")
     (license license:asl2.0)))
 
@@ -9052,7 +9112,13 @@ Java 6 and above.")
      `(#:jar-name "guice-servlet.jar"
        #:source-dir "extensions/servlet/src/"
        #:jdk ,icedtea-8
-       #:tests? #f)); FIXME: not in a java subdir
+       #:tests? #f  ; FIXME: not in a java subdir
+       #:phases
+       (modify-phases %standard-phases
+         (add-after 'unpack 'make-files-writable
+           (lambda _
+             (for-each make-file-writable (find-files "."))
+             #t)))))
     (inputs
      `(("guice" ,java-guice)
        ("servlet"  ,java-classpathx-servletapi)
@@ -9063,13 +9129,14 @@ Java 6 and above.")
     (name "java-assertj")
     (version "3.8.0")
     (source (origin
-              (method url-fetch)
-              (uri (string-append "https://github.com/joel-costigliola/"
-                                  "assertj-core/archive/"
-                                  "assertj-core-" version ".tar.gz"))
+              (method git-fetch)
+              (uri (git-reference
+                     (url "https://github.com/joel-costigliola/assertj-core")
+                     (commit (string-append "assertj-core-" version))))
+              (file-name (git-file-name name version))
               (sha256
                (base32
-                "1kf124fxskf548rklkg86294w2x6ajqrff94rrhyqns31danqkfz"))))
+                "1k35cg2in7pzk4pbdjryr0pll5lgk1r6ngrn0j8cdlgi7w8zh2d1"))))
     (build-system ant-build-system)
     (arguments
      `(#:jar-name "java-assertj.jar"
@@ -9094,14 +9161,22 @@ readability and make maintenance of tests easier.")
     (name "java-jboss-javassist")
     (version "3.21.0")
     (source (origin
-              (method url-fetch)
-              (uri (string-append "https://github.com/jboss-javassist/javassist/"
-                                  "archive/rel_"
-                                  (string-map (lambda (x) (if (eq? x #\.) #\_ x)) version)
-                                  "_ga.tar.gz"))
+              (method git-fetch)
+              (uri (git-reference
+                     (url "https://github.com/jboss-javassist/javassist")
+                     (commit
+                       (string-append "rel_"
+                                      (string-map
+                                        (lambda (x) (if (eq? x #\.) #\_ x)) version)
+                                      "_ga"))))
+              (file-name (git-file-name name version))
               (sha256
                (base32
-                "10lpcr3sbf7y6fq6fc2h2ik7rqrivwcy4747bg0kxhwszil3cfmf"))))
+                "0h3zlcyqiaq01fspm69h7vki67raw305w89p4ha8vlhpzw02qifm"))
+              (modules '((guix build utils)))
+              (snippet
+               '(begin
+                  (delete-file "javassist.jar")))))
     (build-system ant-build-system)
     (arguments
      `(#:jar-name "java-jboss-javassist.jar"
@@ -9110,9 +9185,9 @@ readability and make maintenance of tests easier.")
        #:tests? #f; FIXME: requires junit-awtui and junit-swingui from junit3
        #:phases
        (modify-phases %standard-phases
-         (add-before 'configure 'remove-binary
+         (add-after 'unpack 'make-files-writable
            (lambda _
-             (delete-file "javassist.jar")
+             (for-each make-file-writable (find-files "."))
              #t)))))
     (native-inputs
      `(("junit" ,java-junit)))
@@ -9129,13 +9204,14 @@ file when the JVM loads it.")
     (name "java-jcommander")
     (version "1.71")
     (source (origin
-              (method url-fetch)
-              (uri (string-append "https://github.com/cbeust/jcommander/archive/"
-                                  version ".tar.gz"))
-              (file-name (string-append name "-" version ".tar.gz"))
+              (method git-fetch)
+              (uri (git-reference
+                     (url "https://github.com/cbeust/jcommander")
+                     (commit version)))
+              (file-name (git-file-name name version))
               (sha256
                (base32
-                "1f5k2ckay6qjc3d3w3d7bc0p3cx3c7n6p6zxvw1kibqdr0q98wlx"))))
+                "12vcpc19sd7jhvjgp7xz1qjanfix162xb3x2q5zah93rjklj1h57"))))
     (build-system ant-build-system)
     (arguments
      `(#:jar-name "java-jcommander.jar"
@@ -9154,13 +9230,14 @@ annotations.")
     (name "java-bsh")
     (version "2.0b6")
     (source (origin
-              (method url-fetch)
-              (uri (string-append "https://github.com/beanshell/beanshell/archive/"
-                                  version ".tar.gz"))
-              (file-name (string-append name "-" version ".tar.gz"))
+              (method git-fetch)
+              (uri (git-reference
+                     (url "https://github.com/beanshell/beanshell")
+                     (commit version)))
+              (file-name (git-file-name name version))
               (sha256
                (base32
-                "1bawkxk6jyc75hxvzkpz689h73cn3f222m0ar3nvb0dal2b85kfv"))))
+                "0kz3f0xjack6c9syssi4qjw1rbd3q5963sk5pmr143hiibxa9csw"))))
     (build-system ant-build-system)
     (arguments
      `(#:build-target "jarall"
@@ -11926,6 +12003,7 @@ Isolation and Durability) properties.")
               (uri (git-reference
                      (url "https://github.com/remkop/picocli")
                      (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
               (sha256
                (base32
                 "1sxp6rxjfgjd98ly14b3d15dvxkm5wg4g46w12jyhmr0kmkaca3c"))))

@@ -47,8 +47,8 @@
   #:use-module (guix build-system gnu))
 
 (define-public cuirass
-  (let ((commit "3db603c1913fe14d260a44b05575a2ead3866b47")
-        (revision "32"))
+  (let ((commit "4dd9664bf98b6063a1ea2d0f76fffd5414be456a")
+        (revision "36"))
     (package
       (name "cuirass")
       (version (git-version "0.0.1" revision commit))
@@ -60,7 +60,7 @@
                 (file-name (git-file-name name version))
                 (sha256
                  (base32
-                  "1q69lgngsvpvcy6ww2a75wndjzymay5xaqmbj78znqmn7ck3fv44"))))
+                  "1pd0h1c6djxpq7h63fl21l87w2wwxlp1nawcj6qmrjhb597kncdk"))))
       (build-system gnu-build-system)
       (arguments
        '(#:modules ((guix build utils)
@@ -120,7 +120,7 @@
                    `("GUILE_LOAD_COMPILED_PATH" ":" prefix (,objs)))
                  #t))))))
       (inputs
-       `(("guile" ,guile-3.0)
+       `(("guile" ,@(assoc-ref (package-native-inputs guix) "guile"))
          ("guile-fibers" ,guile-fibers)
          ("guile-gcrypt" ,guile-gcrypt)
          ("guile-json" ,guile-json-4)

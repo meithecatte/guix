@@ -124,6 +124,7 @@
   #:use-module (gnu packages qt)
   #:use-module (gnu packages readline)
   #:use-module (gnu packages ruby)
+  #:use-module (gnu packages serialization)
   #:use-module (gnu packages sphinx)
   #:use-module (gnu packages tcl)
   #:use-module (gnu packages terminals)
@@ -1863,13 +1864,13 @@ development, not the kernel implementation of ACPI.")
 (define-public s-tui
   (package
     (name "s-tui")
-    (version "1.0.0")
+    (version "1.0.1")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "s-tui" version))
        (sha256
-        (base32 "0r5yhlsi5xiy7ii1w4kqkaxz9069v5bbfwi3x3xnxhk51yjfgr8n"))))
+        (base32 "1gqrb2xxii43j7kszy7kvv4f6hr8ac4p0m9q8i1xs5fhsqcx186i"))))
     (build-system python-build-system)
     (inputs
      `(("python-psutil" ,python-psutil)
@@ -2163,13 +2164,13 @@ of supported upstream metrics systems simultaneously.")
 (define-public ansible
   (package
     (name "ansible")
-    (version "2.9.9")
+    (version "2.9.10")
     (source
      (origin
        (method url-fetch)
        (uri (pypi-uri "ansible" version))
        (sha256
-        (base32 "1l99vwkl48iwr8ffd1ihqia995mz8h8hwk4akm4w0cgiifp88gg8"))))
+        (base32 "1kfaxd7w8qiis2vv96kgrhiqh158qb0z4lspr9c8fsdi5m1z2rh8"))))
     (build-system python-build-system)
     (native-inputs
      `(("python-bcrypt" ,python-bcrypt)
@@ -3863,3 +3864,49 @@ It supports mounting local filesystems of any kind the normal mount utility
 supports.  It can also mount encrypted LUKS volumes using the password
 supplied by the user when logging in.")
     (license (list license:gpl2+ license:lgpl2.1+))))
+
+(define-public jc
+  (package
+    (name "jc")
+    (version "1.11.8")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/kellyjonbrazil/jc.git")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0rkckbgm04ql4r48wjgljfiqvsz36n99yqcpcyna8lvlm8h4nmwa"))))
+    (build-system python-build-system)
+    (propagated-inputs
+     `(("python-ruamel.yaml" ,python-ruamel.yaml)
+       ("python-xmltodict" ,python-xmltodict)
+       ("python-pygments" ,python-pygments)))
+    (home-page "https://github.com/kellyjonbrazil/jc")
+    (synopsis "Convert the output of command-line tools to JSON")
+    (description "@code{jc} JSONifies the output of many CLI tools and
+file-types for easier parsing in scripts.")
+    (license license:expat)))
+
+(define-public jtbl
+  (package
+    (name "jtbl")
+    (version "1.1.6")
+    (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://github.com/kellyjonbrazil/jtbl.git")
+                    (commit (string-append "v" version))))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "1zzd7rd63xva50f22d1rfja4r302aizrafarhwm67vv181swvdya"))))
+    (build-system python-build-system)
+    (inputs
+     `(("python-tabulate" ,python-tabulate)))
+    (home-page "https://github.com/kellyjonbrazil/jtbl")
+    (synopsis "Command-line tool to print JSON data as a table in the terminal")
+    (description "@code{jtbl} accepts piped JSON data from stdin and outputs a
+text table representation to stdout.")
+    (license license:expat)))

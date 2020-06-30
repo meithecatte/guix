@@ -1866,12 +1866,12 @@ gone wild and are suddenly taking up your bandwidth.")
     (source
      (origin
        (method url-fetch)
-       (uri (string-append "https://github.com/nzbget/nzbget/archive/v"
-                           version ".tar.gz"))
-       (file-name (string-append name "-" version ".tar.gz"))
+       (uri (string-append "https://github.com/nzbget/nzbget/releases"
+                           "/download/v" version
+                           "/nzbget-" version "-src.tar.gz"))
        (sha256
         (base32
-         "0l3dzxz7d7jf6cyach41zirvsx1x0vs4nh053c0miycv7zjyrly7"))
+         "0lwd0pfrs4a5ms193hgz2qiyf7grrc925dw6y0nfc0gkp27db9b5"))
        (modules '((guix build utils)))
        (snippet
         ;; Reported upstream as <https://github.com/nzbget/nzbget/pull/414>.
@@ -1908,7 +1908,7 @@ procedure calls (RPCs).")
 (define-public openvswitch
   (package
     (name "openvswitch")
-    (version "2.12.0")
+    (version "2.13.0")
     (source (origin
               (method url-fetch)
               (uri (string-append
@@ -1916,7 +1916,7 @@ procedure calls (RPCs).")
                     version ".tar.gz"))
               (sha256
                (base32
-                "1y78ix5inhhcvicbvyy2ij38am1215nr55vydhab3d4065q45z8k"))))
+                "0cd5vmfr6zwgcnkwys6rag6cmz68v0librpaplianv734xs74pyx"))))
     (build-system gnu-build-system)
     (arguments
      '(;; FIXME: many tests fail with:
@@ -1943,11 +1943,9 @@ procedure calls (RPCs).")
     (native-inputs
      `(("perl" ,perl)
        ("pkg-config" ,pkg-config)
-       ("python" ,python-2)
+       ("python" ,python-wrapper)
        ;; for testing
        ("util-linux" ,util-linux)))
-    (propagated-inputs
-     `(("python-six" ,python2-six)))
     (inputs
      `(("libcap-ng" ,libcap-ng)
        ("openssl" ,openssl)))
@@ -2037,13 +2035,14 @@ enabled due to license conflicts between the BSD advertising clause and the GPL.
     (version "3.0.19")
     (source
      (origin
-       (method url-fetch)
-       (uri (string-append "https://github.com/ptrrkssn/pidentd/archive/"
-                           "v" version ".tar.gz"))
-       (file-name (string-append name "-" version ".tar.gz"))
+       (method git-fetch)
+       (uri (git-reference
+              (url "https://github.com/ptrrkssn/pidentd")
+              (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
        (sha256
         (base32
-         "0y3kd1bkydqkpc1qdff24yswysamsqivvadjy0468qri5730izgc"))))
+         "1k4rr0b4ygxssbnsykzjvz4hjhazzz4j5arlilyc1iq7b1wzsk7i"))))
     (build-system gnu-build-system)
     (arguments
      `(#:tests? #f)) ; No tests are included
@@ -2052,7 +2051,7 @@ enabled due to license conflicts between the BSD advertising clause and the GPL.
     (home-page "https://www.lysator.liu.se/~pen/pidentd/")
     (synopsis "Small Ident Daemon")
     (description
-     "@dfn{Pidentd} (Peter's Ident Daemon) is a identd, which implements a
+     "@dfn{Pidentd} (Peter's Ident Daemon) is an identd, which implements a
 identification server.  Pidentd looks up specific TCP/IP connections and
 returns the user name and other information about the connection.")
     (license license:public-domain)))

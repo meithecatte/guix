@@ -42,6 +42,7 @@
 ;;; Copyright © 2020 Guillaume Le Vaillant <glv@posteo.net>
 ;;; Copyright © 2020 Alex McGrath <amk@amk.ie>
 ;;; Copyright © 2020 Michael Rohleder <mike@rohleder.de>
+;;; Copyright © 2020 Vinicius Monego <monego@posteo.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -610,7 +611,7 @@ available.")
 (define-public x265
   (package
     (name "x265")
-    (version "3.3")
+    (version "3.4")
     (outputs '("out" "static"))
     (source
       (origin
@@ -620,7 +621,7 @@ available.")
                    (string-append "https://download.videolan.org/videolan/x265/"
                                   "x265_" version ".tar.gz")))
         (sha256
-         (base32 "170b61cgpcs5n35qps0p40dqs1q81vkgagzbs4zv7pzls6718vpj"))
+         (base32 "0wl62hfsdqpf3r3z3s6l9bz7pdb1rcik5ll00b3yaadplqipy162"))
         (patches (search-patches "x265-arm-flags.patch"))
         (modules '((guix build utils)))
         (snippet '(begin
@@ -637,8 +638,7 @@ available.")
        #:configure-flags
          ;; Ensure position independent code for everyone.
          (list "-DENABLE_PIC=TRUE"
-               ,@(if (string-prefix? "armhf" (or (%current-system)
-                                                 (%current-target-system)))
+               ,@(if (target-arm?)
                      '("-DENABLE_ASSEMBLY=OFF")
                      '())
                (string-append "-DCMAKE_INSTALL_PREFIX="
@@ -649,9 +649,6 @@ available.")
            (lambda _
              (delete-file-recursively "build")
              (chdir "source")
-             ;; recognize armv8 in 32-bit mode as ARM
-             (substitute* "CMakeLists.txt"
-              (("armv6l") "armv8l"))
              #t))
          (add-before 'configure 'build-12-bit
            (lambda* (#:key (configure-flags '()) #:allow-other-keys)
@@ -971,7 +968,12 @@ operate properly.")
        ("mesa" ,mesa)
        ("openal" ,openal)
        ("pulseaudio" ,pulseaudio)
-       ("rav1e" ,rav1e)
+       ;; XXX: rav1e depends on rust, which currently only works on x86_64.
+       ;; See also the related configure flag when changing this.
+       ,@(if (string-prefix? "x86_64" (or (%current-target-system)
+                                          (%current-system)))
+             `(("rav1e" ,rav1e))
+             '())
        ("sdl" ,sdl2)
        ("soxr" ,soxr)
        ("speex" ,speex)
@@ -1053,7 +1055,10 @@ operate properly.")
          "--enable-libmp3lame"
          "--enable-libopus"
          "--enable-libpulse"
-         "--enable-librav1e"
+         ,@(if (string-prefix? "x86_64" (or (%current-target-system)
+                                            (%current-system)))
+               '("--enable-librav1e")
+               '())
          "--enable-libsoxr"
          "--enable-libspeex"
          "--enable-libtheora"
@@ -1117,6 +1122,24 @@ operate properly.")
 convert and stream audio and video.  It includes the libavcodec
 audio/video codec library.")
     (license license:gpl2+)))
+
+;; ungoogled-chromium crashes with ffmpeg 4.3, so stick with this version for
+;; now.  See <https://issues.guix.gnu.org/41987>.
+(define-public ffmpeg-4.2
+  (package
+    (inherit ffmpeg)
+    (version "4.2.3")
+    (source (origin
+              (method url-fetch)
+              (uri (string-append "https://ffmpeg.org/releases/ffmpeg-"
+                                  version ".tar.xz"))
+              (sha256
+               (base32
+                "0cddkb5sma9dzy8i59sfls19rhjlq40zn9mh3x666dqkxl5ckxlx"))))
+    (arguments
+     (substitute-keyword-arguments (package-arguments ffmpeg)
+       ((#:configure-flags flags)
+        `(delete "--enable-librav1e" ,flags))))))
 
 (define-public ffmpeg-3.4
   (package
@@ -1507,6 +1530,14 @@ SVCD, DVD, 3ivx, DivX 3/4/5, WMV and H.264 movies.")
                 (("\"youtube-dl\",")
                  (string-append "\"" ytdl "/bin/youtube-dl\",")))
               #t)))
+         (add-before 'configure 'build-reproducibly
+           (lambda _
+             ;; Somewhere in the build system library dependencies are enumerated
+             ;; and passed as linker flags, but the order in which they are added
+             ;; varies.  See <https://github.com/mpv-player/mpv/issues/7855>.
+             ;; Set PYTHONHASHSEED as a workaround for deterministic results.
+             (setenv "PYTHONHASHSEED" "1")
+             #t))
          (add-before
           'configure 'setup-waf
           (lambda* (#:key inputs #:allow-other-keys)
@@ -1614,7 +1645,7 @@ To load this plugin, specify the following option when starting mpv:
 (define-public youtube-dl
   (package
     (name "youtube-dl")
-    (version "2020.06.06")
+    (version "2020.06.16.1")
     (source (origin
               (method url-fetch)
               (uri (string-append "https://github.com/ytdl-org/youtube-dl/"
@@ -1622,7 +1653,7 @@ To load this plugin, specify the following option when starting mpv:
                                   version ".tar.gz"))
               (sha256
                (base32
-                "1qrrr14glv0jv377n61paq55b6k58jpnwbz2sp5xfl4wnxy5hqny"))))
+                "1q0080cvxpfakgbzigbnl9adnga3jz1sqig2rsiq52rarqbc01px"))))
     (build-system python-build-system)
     (arguments
      ;; The problem here is that the directory for the man page and completion
@@ -2333,7 +2364,7 @@ from sites like Twitch.tv and pipes them into a video player of choice.")
 (define-public mlt
   (package
     (name "mlt")
-    (version "6.18.0")
+    (version "6.20.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -2342,7 +2373,7 @@ from sites like Twitch.tv and pipes them into a video player of choice.")
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0iiqym15n8kbnjzj0asmm86gs23yykz0va5b475cc4v2vv5admgx"))))
+                "14kayzas2wisyw0z27qkcm4qnxbdb7bqa0hg7gaj5kbm3nvsnafk"))))
     (build-system gnu-build-system)
     (arguments
      `(#:tests? #f                      ; no tests
@@ -2363,7 +2394,7 @@ from sites like Twitch.tv and pipes them into a video player of choice.")
              #t)))))
     (inputs
      `(("alsa-lib" ,alsa-lib)
-       ("ffmpeg" ,ffmpeg-3.4)
+       ("ffmpeg" ,ffmpeg)
        ("fftw" ,fftw)
        ("frei0r-plugins" ,frei0r-plugins)
        ("gdk-pixbuf" ,gdk-pixbuf)
@@ -3424,7 +3455,7 @@ It counts more than 100 plugins.")
        ("pkg-config" ,pkg-config)))
     (inputs
      `(("libjpeg" ,libjpeg-turbo)
-       ("ffmpeg" ,ffmpeg-3.4)
+       ("ffmpeg" ,ffmpeg)
        ("libmicrohttpd" ,libmicrohttpd)
        ("sqlite" ,sqlite)))
     (arguments
@@ -3704,7 +3735,7 @@ transitions, and effects and then export your film to many common formats.")
 (define-public dav1d
   (package
     (name "dav1d")
-    (version "0.7.0")
+    (version "0.7.1")
     (source
       (origin
         (method url-fetch)
@@ -3712,7 +3743,7 @@ transitions, and effects and then export your film to many common formats.")
                             "/dav1d/" version "/dav1d-" version ".tar.xz"))
         (sha256
          (base32
-          "0xcykraf42gkymzqx1k1lcdclgk9y5yf7rr56vslrgmr0r849qnk"))))
+          "1hnkfcg57bv5rib6cnj39dy1jx0q7zi5fb2fz52hf2y0bv8bad1k"))))
     (build-system meson-build-system)
     (native-inputs `(("nasm" ,nasm)))
     (home-page "https://code.videolan.org/videolan/dav1d")
@@ -4001,7 +4032,7 @@ result in several formats:
         ("rust-console" ,rust-console-0.9)
         ("rust-serde" ,rust-serde-1.0)
         ("rust-cc" ,rust-cc-1.0)
-        ("rust-rayon" ,rust-rayon-1.3)
+        ("rust-rayon" ,rust-rayon-1)
         ("rust-byteorder" ,rust-byteorder-1.3)
         ("rust-clap" ,rust-clap-2)
         ("rust-vergen" ,rust-vergen-3.1))

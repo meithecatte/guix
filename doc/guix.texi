@@ -1978,7 +1978,7 @@ its device name.  Assuming that the USB stick is known as @file{/dev/sdX},
 copy the image with:
 
 @example
-dd if=guix-system-install-@value{VERSION}.x86_64-linux.iso of=/dev/sdX
+dd if=guix-system-install-@value{VERSION}.x86_64-linux.iso of=/dev/sdX status=progress
 sync
 @end example
 
@@ -9171,7 +9171,7 @@ store.
 @section Invoking @command{guix hash}
 
 @cindex @command{guix hash}
-The @command{guix hash} command computes the SHA256 hash of a file.
+The @command{guix hash} command computes the hash of a file.
 It is primarily a convenience tool for anyone contributing to the
 distribution: it computes the cryptographic hash of a file, which can be
 used in the definition of a package (@pxref{Defining Packages}).
@@ -26612,6 +26612,55 @@ setuid-root (@pxref{Setuid Programs}) such that unprivileged users can invoke
 @command{singularity run} and similar commands.
 @end defvr
 
+@cindex rshiny
+@subsubheading R-Shiny service
+
+The @code{(gnu services science)} module provides the following service.
+
+@defvr {Scheme Variable} rshiny-service-type
+
+This is a type of service which is used to run a webapp created with
+@code{r-shiny}.  This service sets the @code{R_LIBS_USER} environment
+variable and runs the provided script to call @code{runApp}.
+
+@deftp {Data Type} rshiny-configuration
+This is the data type representing the configuration of rshiny.
+
+@table @asis
+
+@item @code{package} (default: @code{r-shiny})
+The package to use.
+
+@item @code{binary} (defaunlt @code{"rshiny"})
+The name of the binary or shell script located at @code{package/bin/} to
+run when the service is run.
+
+The common way to create this file is as follows:
+
+@lisp
+@dots{}
+(let* ((out       (assoc-ref %outputs "out"))
+       (targetdir (string-append out "/share/" ,name))
+       (app       (string-append out "/bin/" ,name))
+       (Rbin      (string-append (assoc-ref %build-inputs "r-min")
+                                 "/bin/Rscript")))
+@dots{}
+  (mkdir-p (string-append out "/bin"))
+  (call-with-output-file app
+    (lambda (port)
+      (format port
+"#!~a
+library(shiny)
+setwd(\"~a\")
+runApp(launch.browser=0, port=4202)~%\n"
+      Rbin targetdir)))
+@dots{}
+@end lisp
+
+@end table
+@end deftp
+@end defvr
+
 @cindex Nix
 @subsubheading Nix service
 
@@ -27616,7 +27665,7 @@ the device corresponding to a USB stick, one can copy the image to it
 using the following command:
 
 @example
-# dd if=$(guix system disk-image my-os.scm) of=/dev/sdc
+# dd if=$(guix system disk-image my-os.scm) of=/dev/sdc status=progress
 @end example
 
 When using @code{docker-image}, a Docker image is produced.  Guix builds
