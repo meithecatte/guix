@@ -1,5 +1,6 @@
 ;;; GNU Guix --- Functional package management for GNU
 ;;; Copyright © 2020 Timothy Sample <samplet@ngyro.com>
+;;; Copyright © 2020 Jakub Kądziołka <kuba@kadziolka.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -49,7 +50,7 @@ and object directories."
                   (format #t "Configuring ~a~%" template)
                   (let ((target (string-drop-right template 3)))
                     (copy-file template target)
-                    (substitute* target
+                    (substitute* target #:require-matches? #f
                       (("@VERSION@") version))))
                 (find-files modules
                             (lambda (fn st)
@@ -58,7 +59,7 @@ and object directories."
                   (format #t "Configuring ~a~%" template)
                   (let ((target (string-drop-right template 3)))
                     (copy-file template target)
-                    (substitute* target
+                    (substitute* target #:require-matches? #f
                       (("@GUILE@") guile)
                       (("@MODDIR@") moddir)
                       (("@GODIR@") godir))
