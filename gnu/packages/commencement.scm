@@ -8,6 +8,7 @@
 ;;; Copyright © 2018, 2019, 2020 Jan (janneke) Nieuwenhuizen <janneke@gnu.org>
 ;;; Copyright © 2019, 2020 Marius Bakke <mbakke@fastmail.com>
 ;;; Copyright © 2020 Timothy Sample <samplet@ngyro.com>
+;;; Copyright © 2020 Jakub Kądziołka <kuba@kadziolka.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -283,7 +284,7 @@ pure Scheme to Tar and decompression in one easy step.")
                           (mescc (string-append bin "/mescc"))
                           (module (string-append out "/share/mes/module")))
                      (define (rewire file)
-                       (substitute* file
+                       (substitute* file #:require-matches? #f
                          ((mes) out)
                          (("/gnu/store[^ ]+mes-minimal-[^/)}\"]*") out)
                          (("/gnu/store[^ ]+guile-[^/]*/bin/guile") guile)
