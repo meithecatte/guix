@@ -221,18 +221,15 @@
                ;; want to keep a reference to everything that's in
                ;; $LIBRARY_PATH at build time (GCC, Binutils, bzip2, file,
                ;; etc.)
-               (substitute* config1
+               (substitute* config1 #:require-matches? #f
                  (("^incpth=.*$")
                   (string-append "incpth='" libc "/include'\n"))
                  (("^(libpth|plibpth|libspath)=.*$" _ variable)
                   (string-append variable "='" libc "/lib'\n")))
-
-               (for-each (lambda (file)
-                           (substitute* config2
-                             (("libpth => .*$")
-                              (string-append "libpth => '" libc
-                                             "/lib',\n"))))
-                         config2)
+               (substitute* config2 #:require-matches? #f
+                 (("libpth => .*$")
+                  (string-append "libpth => '" libc
+                                 "/lib',\n")))
                #t))))))
     (inputs
      (if (%current-target-system)
