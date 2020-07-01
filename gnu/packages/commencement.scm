@@ -1418,19 +1418,17 @@ ac_cv_c_float_format='IEEE (little-endian)'
              (format (current-error-port)
                      "running ./configure ~a\n" (string-join configure-flags))
              (apply invoke "./configure" configure-flags)))
-                  (add-after 'configure 'fixup-configure
-                    (lambda _
-                      (let* ((out (assoc-ref %outputs "out"))
-                             (bash (assoc-ref %build-inputs "bash"))
-                             (shell (string-append bash "/bin/bash")))
-                        (substitute* "config.make"
-                          (("INSTALL = scripts/") "INSTALL = $(..)./scripts/"))
-                        (substitute* "config.make"
-                          (("INSTALL = scripts/") "INSTALL = $(..)./scripts/")
-                          (("BASH = ") (string-append
-                                        "SHELL = " shell "
-         BASH = ")))
-                        #t))))))))
+         (add-after 'configure 'fixup-configure
+           (lambda _
+             (let* ((out (assoc-ref %outputs "out"))
+                    (bash (assoc-ref %build-inputs "bash"))
+                    (shell (string-append bash "/bin/bash")))
+               (substitute* "config.make"
+                 (("INSTALL = scripts/") "INSTALL = $(..)./scripts/")
+                 (("BASH = ") (string-append
+                               "SHELL = " shell "
+BASH = ")))
+               #t))))))))
 
 (define gcc-mesboot0
   (package
