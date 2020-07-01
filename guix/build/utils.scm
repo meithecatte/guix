@@ -1005,7 +1005,7 @@ When KEEP-MTIME? is true, the atime/mtime of FILE are kept unchanged."
   (let ((st (stat file)))
     ;; Consider FILE is using an 8-bit encoding to avoid errors.
     (with-fluids ((%default-port-encoding #f))
-      (substitute* file
+      (substitute* file #:require-matches? #f
         (("^ *SHELL[[:blank:]]*:?=[[:blank:]]*([[:graph:]]*/)([[:graph:]]+)(.*)$"
           _ dir shell args)
          (let* ((old (string-append dir shell))
@@ -1033,7 +1033,7 @@ no replacement 'file' command, doing nothing~%")
       (let ((st (stat file)))
         ;; Consider FILE is using an 8-bit encoding to avoid errors.
         (with-fluids ((%default-port-encoding #f))
-          (substitute* file
+          (substitute* file #:require-matches? #f
             (("/usr/bin/file")
              (begin
                (format (current-error-port)

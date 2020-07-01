@@ -2,6 +2,7 @@
 ;;; Copyright © 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019 Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright © 2018 Mark H Weaver <mhw@netris.org>
 ;;; Copyright © 2020 Brendan Tildesley <mail@brendan.scot>
+;;; Copyright © 2020 Jakub Kądziołka <kuba@kadziolka.net>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -724,7 +725,7 @@ which cannot be found~%"
                      ;; '.desktop' files contain translations and are always
                      ;; UTF-8-encoded.
                      (with-fluids ((%default-port-encoding "UTF-8"))
-                       (substitute* files
+                       (substitute* files #:require-matches? #f
                          (("^Exec=([^/[:blank:]\r\n]*)(.*)$" _ binary rest)
                           (string-append "Exec=" (which binary) rest))
                          (("^TryExec=([^/[:blank:]\r\n]*)(.*)$" _ binary rest)
