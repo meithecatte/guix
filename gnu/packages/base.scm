@@ -829,11 +829,6 @@ the store.")
                          (format #f "#define SHELL_PATH \"~a/bin/bash\"\n"
                                  bash)))
 
-                      ;; Same for `popen'.
-                      (substitute* "libio/iopopen.c"
-                        (("/bin/sh")
-                         (string-append bash "/bin/sh")))
-
                       ;; Same for the shell used by the 'exec' functions for
                       ;; scripts that lack a shebang.
                       (substitute* (find-files "." "^paths\\.h$")
