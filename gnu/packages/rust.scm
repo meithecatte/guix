@@ -99,7 +99,7 @@
   (string-append "https://" dist ".rust-lang.org/dist/"
                  "rustc-" version "-src.tar.gz"))
 
-(define* (rust-bootstrapped-package base-rust version checksum)
+(define* (rust-bootstrapped-package base-rust version checksum #:key (dist "static"))
   "Bootstrap rust VERSION with source checksum CHECKSUM using BASE-RUST."
   (package
     (inherit base-rust)
@@ -107,7 +107,7 @@
     (source
       (origin
         (inherit (package-source base-rust))
-        (uri (rust-uri version))
+        (uri (rust-uri version #:dist dist))
         (sha256 (base32 checksum))))
     (native-inputs
      (alist-replace "cargo-bootstrap" (list base-rust "cargo")
@@ -1279,6 +1279,31 @@ move around."
 (define-public rust-1.44
   (rust-bootstrapped-package rust-1.43 "1.44.1"
     "0ww4z2v3gxgn3zddqzwqya1gln04p91ykbrflnpdbmcd575n8bky"))
+
+(define-public rust-1.45
+  (let ((base-rust
+         (rust-bootstrapped-package rust-1.44 "1.45.0"
+           "0z6dh0yd3fcm3qh960wi4s6fa6pxz9mh77psycsqfkkx5kqra15s")))
+    (package
+      (inherit base-rust
+      (inputs
+        (alist-replace "llvm" (list llvm-10)
+                       (package-inputs base-rust)))
+      (arguments
+        (substitute-keyword-arguments (package-arguments base-rust)
+          ((#:phases phases)
+           `(modify-phases ,phases
+              ;; These tests make sure that the parser behaves properly when
+              ;; a source file starts with a shebang. Unfortunately,
+              ;; the patch-shebangs phase changes the meaning of these edge-cases.
+              ;; We skip the test since it's drastically unlikely Guix's packaging
+              ;; will introduce a bug here.
+              (add-after 'patch-tests 'skip-shebang-tests
+                (lambda _
+                  (with-directory-excursion "src/test/ui/parser/shebang"
+                    (delete-file "shebang-doc-comment.rs")
+                    (delete-file "sneaky-attrib.rs")
+                    #t)))))))))))
 
 ;; NOTE: An update to LLVM 10 is coming in 1.45, make sure not to miss it.
 
