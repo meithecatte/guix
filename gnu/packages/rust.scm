@@ -1286,6 +1286,10 @@ move around."
            "0z6dh0yd3fcm3qh960wi4s6fa6pxz9mh77psycsqfkkx5kqra15s")))
     (package
       (inherit base-rust)
+      (source
+        (origin
+          (inherit (package-source base-rust))
+          (patches (search-patches "rust-1.45-linker-locale.patch"))))
       (inputs
         (alist-replace "llvm" (list llvm-10)
                        (package-inputs base-rust)))
@@ -1310,12 +1314,6 @@ move around."
                 (lambda _
                   (substitute* "src/tools/cargo/tests/testsuite/freshness.rs"
                     (("fn linking_interrupted" all)
-                     (string-append "#[ignore] " all)))
-                 #t))
-              (add-after 'patch-tests 'skip-utf8-linker-test
-                (lambda _
-                  (substitute* "src/tools/cargo/tests/testsuite/test.rs"
-                    (("fn bin_env_for_test" all)
                      (string-append "#[ignore] " all)))
                  #t)))))))))
 
