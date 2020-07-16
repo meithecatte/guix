@@ -1285,7 +1285,7 @@ move around."
          (rust-bootstrapped-package rust-1.44 "1.45.0"
            "0z6dh0yd3fcm3qh960wi4s6fa6pxz9mh77psycsqfkkx5kqra15s")))
     (package
-      (inherit base-rust
+      (inherit base-rust)
       (inputs
         (alist-replace "llvm" (list llvm-10)
                        (package-inputs base-rust)))
@@ -1303,9 +1303,21 @@ move around."
                   (with-directory-excursion "src/test/ui/parser/shebang"
                     (delete-file "shebang-doc-comment.rs")
                     (delete-file "sneaky-attrib.rs")
-                    #t)))))))))))
-
-;; NOTE: An update to LLVM 10 is coming in 1.45, make sure not to miss it.
+                    #t)))
+              ;; This test case synchronizes itself by starting a localhost TCP
+              ;; server. This doesn't work as networking is not available.
+              (add-after 'patch-tests 'skip-networking-test
+                (lambda _
+                  (substitute* "src/tools/cargo/tests/testsuite/freshness.rs"
+                    (("fn linking_interrupted" all)
+                     (string-append "#[ignore] " all)))
+                 #t))
+              (add-after 'patch-tests 'skip-utf8-linker-test
+                (lambda _
+                  (substitute* "src/tools/cargo/tests/testsuite/test.rs"
+                    (("fn bin_env_for_test" all)
+                     (string-append "#[ignore] " all)))
+                 #t)))))))))
 
 ;; TODO(staging): Bump this variable to the latest packaged rust.
 (define-public rust rust-1.39)
