@@ -9,6 +9,7 @@
 ;;; Copyright © 2019 Jens Mølgaard <jens@zete.tk>
 ;;; Copyright © 2020 Timotej Lazar <timotej.lazar@araneo.si>
 ;;; Copyright © 2020 Marcin Karpezo <sirmacik@wioo.waw.pl>
+;;; Copyright © 2020 Jonathan Brielmaier <jonathan.brielmaier@web.de>
 ;;;
 ;;; This file is part of GNU Guix.
 ;;;
@@ -33,7 +34,9 @@
   #:use-module (guix utils)
   #:use-module (gnu packages)
   #:use-module (gnu packages base)
+  #:use-module (gnu packages c)
   #:use-module (gnu packages compression)
+  #:use-module (gnu packages ncurses)
   #:use-module (gnu packages perl)
   #:use-module (ice-9 match))
 
@@ -453,3 +456,49 @@ under permissive licensing terms.  See the 'Copyright' file."))))
 (define-word-list-dictionary hunspell-dict-en-us
   "en_US"
   (synopsis "Hunspell dictionary for United States English"))
+
+; FIXME: ispell binary is not working, needs some path mangling
+(define-public ispell
+  (package
+    (name "ispell")
+    (version "3.4.00")
+    (source
+     (origin
+       (method url-fetch)
+       (uri (string-append "http://www.cs.hmc.edu/~geoff/tars/ispell-"
+                           version ".tar.gz"))
+       (sha256
+        (base32
+         "1hmfnz55qzfpz7lz0r3m4kkv31smir92ks9s5l1iiwimhr2jxi2x"))))
+    (build-system gnu-build-system)
+    (arguments
+     `(#:make-flags
+       (list (string-append "DESTDIR=" (assoc-ref %outputs "out"))
+             "local.h" "config.sh")
+       #:phases
+       (modify-phases %standard-phases
+         (delete 'configure)
+         (add-before 'build 'correct-hardcoding
+           (lambda* (#:key inputs outputs #:allow-other-keys)
+             (substitute* '("config.X"
+                            "local.h.linux"
+                            "local.h.generic")
+               ;; gcc-toolchain does not provide symlink cc -> gcc
+               (("\"cc\"") "\"gcc\"")
+               (("/bin/sh") (which "sh"))
+               (("/usr/local/bin") "/bin")
+               (("/usr/local/lib") "/lib/ispell")
+               (("/usr/local/man") "/share/man"))
+             (substitute* '("Makefile")
+               (("\\$\\(DESTDIR\\)\\$\\$MASTERHASH")
+                "$(DESTDIR)/lib/ispell/$$MASTERHASH"))
+             #t)))
+       #:tests? #f))                    ;no tests
+    (native-inputs
+     `(("byacc" ,byacc)
+       ("ncurses" ,ncurses)))
+    (synopsis "Interactive spell-checking tool for Unix")
+    (description "Ispell is an interactive spell-checking tool supporting many
+European languages.")
+    (home-page "https://www.cs.hmc.edu/~geoff/ispell.html")
+    (license bsd-3)))
