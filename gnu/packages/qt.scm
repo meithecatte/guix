@@ -367,6 +367,7 @@ developers using C++ or QML, a CSS & JavaScript like language.")
                                   "zlib"))
                   #t)))))
     (build-system gnu-build-system)
+    (outputs '("out" "debug"))
     (propagated-inputs
      `(("mesa" ,mesa)
        ;; Use which the package, not the function
@@ -472,6 +473,9 @@ developers using C++ or QML, a CSS & JavaScript like language.")
                                   out "/share/doc/qt5/examples")
                  "-opensource"
                  "-confirm-license"
+
+                 ;; Later stripped into the :debug output.
+                 "-force-debug-info"
 
                  ;; These features require higher versions of Linux than the
                  ;; minimum version of the glibc.  See
