@@ -34,7 +34,7 @@
   #:use-module (guix utils)
   #:use-module (gnu packages)
   #:use-module (gnu packages base)
-  #:use-module (gnu packages c)
+  #:use-module (gnu packages bison)
   #:use-module (gnu packages compression)
   #:use-module (gnu packages ncurses)
   #:use-module (gnu packages perl)
@@ -472,31 +472,37 @@ under permissive licensing terms.  See the 'Copyright' file."))))
          "1hmfnz55qzfpz7lz0r3m4kkv31smir92ks9s5l1iiwimhr2jxi2x"))))
     (build-system gnu-build-system)
     (arguments
-     `(#:make-flags
-       (list (string-append "DESTDIR=" (assoc-ref %outputs "out"))
-             "local.h" "config.sh")
-       #:phases
+     `(#:phases
        (modify-phases %standard-phases
-         (delete 'configure)
-         (add-before 'build 'correct-hardcoding
+         (replace 'configure
            (lambda* (#:key inputs outputs #:allow-other-keys)
-             (substitute* '("config.X"
-                            "local.h.linux"
-                            "local.h.generic")
-               ;; gcc-toolchain does not provide symlink cc -> gcc
-               (("\"cc\"") "\"gcc\"")
-               (("/bin/sh") (which "sh"))
-               (("/usr/local/bin") "/bin")
-               (("/usr/local/lib") "/lib/ispell")
-               (("/usr/local/man") "/share/man"))
-             (substitute* '("Makefile")
-               (("\\$\\(DESTDIR\\)\\$\\$MASTERHASH")
-                "$(DESTDIR)/lib/ispell/$$MASTERHASH"))
-             #t)))
+             ;; Based local.h.linux
+             (let* ((grep (assoc-ref inputs "grep"))
+                    (out (assoc-ref outputs "out")))
+               (call-with-output-file "local.h"
+                 (lambda (port)
+                   (format port "#define MINIMENU~%")
+                   (format port "#define USG~%")
+                   (format port "#define HAS_RENAME~%")
+                   (format port "#define CC \"gcc\"~%")
+                   (format port "#define POUNDBANG \"#!~a\"~%" (which "sh"))
+                   (format port "#define EGREPCMD \"~a/bin/grep -Ei\"~%" grep)
+                   (format port "#define BINDIR \"~a/bin\"~%" out)
+                   (format port "#define LIBDIR \"~a/lib/ispell\"~%" out)
+                   (format port "#define MAN1DIR \"~a/share/man/man1\"~%" out)
+                   (format port "#define MAN45DIR \"~a/share/man/man5\"~%" out))))
+             #t))
+         ;; Parallel build can try to use config.sh before it's generated.
+         #;(add-before 'build 'generate-config.sh
+           (lambda _
+             (invoke "make" "config.h" "config.sh"))))
+       #:parallel-build? #f
        #:tests? #f))                    ;no tests
-    (native-inputs
-     `(("byacc" ,byacc)
+    (inputs
+     `(("grep" ,grep)
        ("ncurses" ,ncurses)))
+    (native-inputs
+     `(("bison" ,bison)))
     (synopsis "Interactive spell-checking tool for Unix")
     (description "Ispell is an interactive spell-checking tool supporting many
 European languages.")
