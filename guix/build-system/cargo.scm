@@ -263,8 +263,7 @@ any dependent crates. This can be a benefits:
 
                         ;; Keep the standard inputs of 'gnu-build-system'
                         ,@(standard-packages)))
-         (build-inputs `(("cargo" ,rust "cargo")
-                         ("rustc" ,rust)
+         (build-inputs `(("rustc" ,rust)
                          ,@(expand-crate-sources cargo-inputs cargo-development-inputs)
                          ,@native-inputs))
          (outputs outputs)

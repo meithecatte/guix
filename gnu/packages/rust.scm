@@ -110,9 +110,8 @@
         (uri (rust-uri version))
         (sha256 (base32 checksum))))
     (native-inputs
-     (alist-replace "cargo-bootstrap" (list base-rust "cargo")
-                    (alist-replace "rustc-bootstrap" (list base-rust)
-                                   (package-native-inputs base-rust))))))
+     (alist-replace "rustc-bootstrap" (list base-rust)
+                    (package-native-inputs base-rust)))))
 
 (define-public mrustc
   (let ((rustc-version "1.19.0"))
@@ -128,7 +127,7 @@
                 (sha256
                  (base32
                   "194ny7vsks5ygiw7d8yxjmp1qwigd71ilchis6xjl6bb2sj97rd2"))))
-      (outputs '("out" "cargo"))
+      (outputs '("out"))
       (build-system gnu-build-system)
       (inputs
        `(("zlib" ,zlib)))
@@ -187,8 +186,6 @@
                (let* ((out (assoc-ref outputs "out"))
                       (bin (string-append out "/bin"))
                       (tools-bin (string-append out "/tools/bin"))
-                      (cargo-out (assoc-ref outputs "cargo"))
-                      (cargo-bin (string-append cargo-out "/bin"))
                       (lib (string-append out "/lib"))
                       (lib/rust (string-append lib "/mrust"))
                       (gcc (assoc-ref inputs "gcc"))
@@ -204,7 +201,6 @@
                  (install-file "bin/mrustc" bin)
                  ;; minicargo uses relative paths to resolve mrustc.
                  (install-file "tools/bin/minicargo" tools-bin)
-                 (install-file "tools/bin/minicargo" cargo-bin)
                  (mkdir-p run_rustc)
                  (copy-file "run_rustc/Makefile"
                             (string-append run_rustc "/Makefile"))
@@ -228,7 +224,7 @@ safety and thread safety guarantees.")
         (modules '((guix build utils)))
         (snippet '(begin (delete-file-recursively "src/llvm") #t))
         (patches (search-patches "rust-1.19-mrustc.patch"))))
-    (outputs '("out" "cargo"))
+    (outputs '("out"))
     (properties '((timeout . 72000)               ;20 hours
                   (max-silent-time . 18000)))     ;5 hours (for armel)
     (arguments
@@ -413,8 +409,7 @@ test = { path = \"../libtest\" }
                (install-file "output/rustc-build/rustdoc"
                              (string-append out "/bin"))
                (install-file "output/cargo-build/cargo"
-                             (string-append (assoc-ref outputs "cargo")
-                                            "/bin")))
+                             (string-append out "/bin")))
              #t)))))
     (build-system gnu-build-system)
     (native-inputs
@@ -427,7 +422,6 @@ test = { path = \"../libtest\" }
        ("procps" ,procps) ; For the tests
        ("python-2" ,python-2)
        ("rustc-bootstrap" ,mrustc)
-       ("cargo-bootstrap" ,mrustc "cargo")
        ("pkg-config" ,pkg-config) ; For "cargo"
        ("which" ,which)))
     (inputs
@@ -476,7 +470,7 @@ safety and thread safety guarantees.")
        `(;; The tests fail with newer versions of GNU Make.
          ("make" ,gnu-make-4.2)
          ,@(package-native-inputs base-rust)))
-      (outputs '("out" "doc" "cargo"))
+      (outputs '("out" "doc"))
       ;; Since rust-1.19 is local, it's quite probable that Hydra
       ;; will build rust-1.19 only as a dependency of rust-1.20.
       ;; But then Hydra will use the wrong properties, the ones here,
@@ -524,7 +518,6 @@ safety and thread safety guarantees.")
                         (binutils (assoc-ref inputs "binutils"))
                         (python (assoc-ref inputs "python-2"))
                         (rustc (assoc-ref inputs "rustc-bootstrap"))
-                        (cargo (assoc-ref inputs "cargo-bootstrap"))
                         (llvm (assoc-ref inputs "llvm"))
                         (jemalloc (assoc-ref inputs "jemalloc")))
                    (call-with-output-file "config.toml"
@@ -532,7 +525,7 @@ safety and thread safety guarantees.")
                        (display (string-append "
 [llvm]
 [build]
-cargo = \"" cargo "/bin/cargo" "\"
+cargo = \"" rustc "/bin/cargo" "\"
 rustc = \"" rustc "/bin/rustc" "\"
 docs = true
 python = \"" python "/bin/python2" "\"
@@ -600,28 +593,20 @@ jemalloc = \"" jemalloc "/lib/libjemalloc_pic.a" "\"
              (replace 'install
                (lambda* (#:key outputs #:allow-other-keys)
                  (invoke "./x.py" "install")
-                 (substitute* "config.toml"
-                   ;; replace prefix to specific output
-                   (("prefix = \"[^\"]*\"")
-                    (string-append "prefix = \"" (assoc-ref outputs "cargo") "\"")))
                  (invoke "./x.py" "install" "cargo")))
              (add-after 'install 'delete-install-logs
                (lambda* (#:key outputs #:allow-other-keys)
                  (define (delete-manifest-file out-path file)
                    (delete-file (string-append out-path "/lib/rustlib/" file)))
 
-                 (let ((out (assoc-ref outputs "out"))
-                       (cargo-out (assoc-ref outputs "cargo")))
+                 (let ((out (assoc-ref outputs "out")))
                    (for-each
                      (lambda (file) (delete-manifest-file out file))
                      '("install.log"
+                       "manifest-cargo"
                        "manifest-rust-docs"
                        "manifest-rust-std-x86_64-unknown-linux-gnu"
                        "manifest-rustc"))
-                   (for-each
-                     (lambda (file) (delete-manifest-file cargo-out file))
-                     '("install.log"
-                       "manifest-cargo"))
                    #t)))
              (add-after 'install 'wrap-rustc
                (lambda* (#:key inputs outputs #:allow-other-keys)
@@ -840,7 +825,6 @@ jemalloc = \"" jemalloc "/lib/libjemalloc_pic.a" "\"
                  ;; As result of https://github.com/rust-lang/rust/issues/36989
                  ;; `prefix' directory should exist before `install' call
                  (mkdir-p (assoc-ref outputs "out"))
-                 (mkdir-p (assoc-ref outputs "cargo"))
                  #t))
              (add-after 'patch-cargo-tests 'disable-thinlto-test
                (lambda* _
